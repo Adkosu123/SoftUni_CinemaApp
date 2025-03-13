@@ -24,11 +24,16 @@ namespace CinemaApp.Data.Models
 		public bool isDeleted { get; set; }
 
 		[Comment("List of cinema movies")]
-		public List<CinemaMovie> CinemaMovies { get; set; } 
+		//Navigation collection is not virtual, because we are not expected to use LazyLoading.
+		// ICollection<T> is used as a type to benefit from higher abstraction
+		//List<T> is chosen as implementation type, since we do not ecxpect to have many movies in the cinema at the same time.
+		public ICollection<CinemaMovie> CinemaMovies { get; set; } 
 		        = new List<CinemaMovie>();
 
 		[Comment("List of tickets")]
-		public List<Ticket> Tickets { get; set; } 
-		        = new List<Ticket>();
+		// ICollection<T> is used as a type to benefit from higher abstraction
+		//HashSet<T> is chosen as implementation type, since we expect to have many tickets at the cinema and will benefit to have better loop times.
+		public ICollection<Ticket> Tickets { get; set; } 
+		        = new HashSet<Ticket>();
 	}
 }
