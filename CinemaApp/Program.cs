@@ -17,7 +17,7 @@ public class Program
             options.UseSqlServer(connectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-        builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+        builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
             .AddEntityFrameworkStores<CinemaDbContext>();
         builder.Services.AddControllersWithViews();
 
@@ -27,7 +27,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseMigrationsEndPoint();
-        }
+		}
         else
         {
             app.UseExceptionHandler("/Home/Error");
@@ -40,7 +40,8 @@ public class Program
 
         app.UseRouting();
 
-        app.UseAuthorization();
+        app.UseAuthentication();
+		app.UseAuthorization();
 
         app.MapControllerRoute(
             name: "default",
