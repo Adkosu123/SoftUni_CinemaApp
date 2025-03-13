@@ -7,7 +7,6 @@ namespace CinemaApp.Data.Models
 	[Comment("Movies in a cinema with available tickets and schedule")]
 	public class CinemaMovie
 	{
-		[Key]
 		public Guid Id { get; set; }
 
 		[Comment("Foreign key to the movie")]
@@ -25,8 +24,6 @@ namespace CinemaApp.Data.Models
 		[Comment("Shows if movie in a cinema is deleted")]
 		public bool IsDeleted { get; set; }
 
-		[Unicode(false)]
-		[MaxLength(5)]
 		[Comment("Shows the movie schedule in the cinema")]
 		public string Showtimes { get; set; } = "00000";
 

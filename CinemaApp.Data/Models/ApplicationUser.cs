@@ -14,5 +14,13 @@ namespace CinemaApp.Data.Models
 		{
 			Id = Guid.NewGuid();
 		}
+
+		// ICollection<T> is used as a type to benefit from higher abstraction
+		// HashSet<T> is chosen as implementation type, since  users can add many movies to the watchlist and we will benefit from it.
+		public ICollection<ApplicationUserMovie> Watchlist { get; set; } 
+		             = new HashSet<ApplicationUserMovie>();
+
+		public ICollection<Ticket> Tickets { get; set; }
+		         = new HashSet<Ticket>();
 	}
 }
