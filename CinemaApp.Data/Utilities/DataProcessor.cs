@@ -8,7 +8,7 @@ namespace CinemaApp.Data.Utilities
 {
     public static class DataProcessor
     {
-        public static async Task ImportMoviesFromJson(CinemaDbContext context) 
+        public static async Task ImportMoviesFromJson (CinemaDbContext context) 
         {
 			string path = Path.Combine(AppContext.BaseDirectory, "Files", "movies.json");
 			string moviesStr = await File.ReadAllTextAsync(path);
