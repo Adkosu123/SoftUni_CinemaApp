@@ -25,7 +25,7 @@ namespace CinemaApp.Data.Models
 		public bool IsDeleted { get; set; }
 
 		[Comment("Shows the movie schedule in the cinema")]
-		public string Showtimes { get; set; } = "00000";
+		public string? Showtimes { get; set; } = "00000";
 
 		// ICollection<T> is used as a type to benefit from higher abstraction
 		//List<T> is chosen as implementation type, as we do not expect high ammount of tickets for a single projection of a movie.
