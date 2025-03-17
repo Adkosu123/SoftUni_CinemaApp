@@ -1,3 +1,4 @@
+using CarDealer.Utilities;
 using CinemaApp.Data;
 using CinemaApp.Data.Models;
 using CinemaApp.Data.Utilities;
@@ -13,6 +14,7 @@ builder.Services.AddDbContext<CinemaDbContext>(options =>
 	options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<IValidator, EntityValidator>();
+builder.Services.AddSingleton<IXmlHelper, XmlHelper>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -62,17 +64,19 @@ app.MapRazorPages();
 using (var scope = app.Services.CreateScope())
 {
 	IServiceProvider services = scope.ServiceProvider;
+	
 	CinemaDbContext dbContext = services.GetRequiredService<CinemaDbContext>();
 	IValidator entityValidator = services.GetRequiredService<IValidator>();
+	IXmlHelper xmlHelper = services.GetRequiredService<IXmlHelper>();
 	ILogger<DataProcessor> logger = services.GetRequiredService<ILogger<DataProcessor>>();
-	
-	DataProcessor dataProcessor = new DataProcessor(entityValidator, logger);
+
+	DataProcessor dataProcessor = new DataProcessor(entityValidator, xmlHelper, logger);
 	dataProcessor.SeedRoles(services);
 	dataProcessor.SeedUsers(services);
 
 	//await DataProcessor.ImportMoviesFromJson(dbContext);
 	//await DataProcessor.ImportCinemasMoviesFromJson(dbContext);
-	//await DataProcessor.ImportTicketsFromXml(dbContext);
+	await dataProcessor.ImportTicketsFromXml(dbContext);
 
 }
 

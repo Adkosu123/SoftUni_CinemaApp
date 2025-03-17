@@ -12,15 +12,19 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace CinemaApp.Data.Utilities
 {
+	// TODO: Refactor this class into sepa
     public class DataProcessor
     {
 		private readonly IValidator entityValidator;
+		private readonly IXmlHelper xmlHelper;
 		private readonly ILogger<DataProcessor> logger;
 
-		public DataProcessor(IValidator entityValidator, ILogger<DataProcessor> logger)
+		public DataProcessor(IValidator entityValidator, IXmlHelper xmlHelper,
+			ILogger<DataProcessor> logger)
 		{
 			this.entityValidator = entityValidator;
 			this.logger = logger;
+			this.xmlHelper = xmlHelper;
 		}
 		public async Task ImportMoviesFromJson (CinemaDbContext context) 
         {
@@ -58,14 +62,9 @@ namespace CinemaApp.Data.Utilities
 					{
 						if (!this.entityValidator.IsValid(cinemaMovieDto))
 						{
-							//Prepare log message with error messages from the validation
-							StringBuilder logMessage = new StringBuilder();
-							logMessage
-							.AppendLine(string.Format(EntityImportError, nameof(CinemaMovie)))
-							.AppendLine(string.Join(Environment.NewLine, this.entityValidator.ErrorMessages));
-
 							// Log the message
-							this.logger.LogWarning(logMessage.ToString().TrimEnd());
+							this.logger
+								.LogWarning(this.BuildEntityValidatorWarningMessage(nameof(CinemaMovie)));
 
 							// Skip the current DTO instance
 							continue;
@@ -147,8 +146,89 @@ namespace CinemaApp.Data.Utilities
 
 		public async Task ImportTicketsFromXml(CinemaDbContext context)
 		{
-			throw new NotImplementedException();
-		}
+			string path = Path.Combine(AppContext.BaseDirectory, "Files", "tickets.xml");
+			string ticketsStr = await File.ReadAllTextAsync(path);
+
+			try
+			{
+				TicketDto[]? ticketDtos = this.xmlHelper
+				.Deserialize<TicketDto[]>(ticketsStr, "Tickets");
+				if (ticketDtos != null && ticketDtos.Length > 0)
+				{
+					ICollection<Ticket> validTickets = new List<Ticket>();
+					foreach (TicketDto ticketDto in ticketDtos)
+					{
+						if (!this.entityValidator.IsValid(ticketDto))
+						{
+							// Log warning message.
+							this.logger
+								.LogWarning(this.BuildEntityValidatorWarningMessage(nameof(Ticket)));
+
+							// Skip current DTO instance.
+							continue;
+						}
+
+						bool isPriceValid = decimal
+							.TryParse(ticketDto.Price, out decimal ticketPrice);
+						bool isMovieIdValid = Guid
+							.TryParse(ticketDto.MovieId, out Guid ticketMovieId);
+						bool isCinemaIdValid = Guid
+							.TryParse(ticketDto.CinemaId, out Guid ticketCinemaId);
+						bool isUserIdValid = Guid
+							.TryParse(ticketDto.UserId, out Guid ticketUserId);
+
+						if (!isPriceValid || (!isMovieIdValid)
+						|| (!isCinemaIdValid) || (!isUserIdValid))
+						{
+							string logMessage = string.Format(EntityImportError, nameof(Ticket)) + EntityDataParseError;
+
+							this.logger
+								.LogWarning(logMessage);
+
+							continue;
+						}
+
+						CinemaMovie? ticketCinemaMovie = await context
+							.CinemaMovies
+							.SingleOrDefaultAsync(cm => cm.CinemaId == ticketCinemaId
+												  && cm.MovieId == ticketMovieId);
+
+						ApplicationUser? ticketUser = await context
+						   .Users
+						   .SingleOrDefaultAsync(u => u.Id == ticketUserId);
+
+						if (ticketUser == null || ticketCinemaMovie == null)
+						{
+							// Non-existing movie or cinema => cannot import the MovieCinema DTO!
+							string logMessage = string.Format(EntityImportError, nameof(Ticket)) +
+														  RefferencedEntityMissing;
+
+							// Log warning message.
+							this.logger.LogWarning(logMessage);
+
+							// Skip the current DTO instance.
+							continue;
+						}
+
+						Ticket newTicket = new Ticket()
+						{
+							Price = ticketPrice,
+							ApplicationUserId = ticketUserId,
+							CinemaMovieId = ticketCinemaMovie.Id
+
+						};
+						validTickets.Add(newTicket);
+					}
+					await context.Tickets.AddRangeAsync(validTickets);
+					await context.SaveChangesAsync();
+				}
+			}
+			catch (Exception e)
+			{
+				this.logger.LogError(e.Message);
+				throw;
+			}
+}
 		public void SeedUsers(IServiceProvider serviceProvider)
 		{
 			UserManager<ApplicationUser> userManager = serviceProvider
@@ -223,5 +303,19 @@ namespace CinemaApp.Data.Utilities
 				}
 			}
 		}
+
+		private string BuildEntityValidatorWarningMessage(string entityName) 
+		{
+			//Prepare log message with error messages from the validation
+			StringBuilder logMessage = new StringBuilder();
+			logMessage
+			.AppendLine(string.Format(EntityImportError, entityName))
+			.AppendLine(string.Join(Environment.NewLine, this.entityValidator.ErrorMessages));
+
+			// Log the message
+			return logMessage.ToString().TrimEnd();
+		}
+
+	
 	}
 }

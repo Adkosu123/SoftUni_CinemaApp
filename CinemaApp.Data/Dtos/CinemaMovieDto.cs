@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace CinemaApp.Data.Dtos
 {
-    internal class CinemaMovieDto
+    public class CinemaMovieDto
 	{
 		// Movie title from the deserialized JSON
 		[Required]
